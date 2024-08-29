@@ -192,12 +192,54 @@ There are different FPGA parts with the I/O resources listed in the table below:
 
 
 
-#### High-Speed Serial Transceiver Count
+#### High-Speed Serial Transceiver
 
 There is a map that shows the count number of the high-speed transceiver count numbers by different products.
 
 ![Total transceiver count and the transmission speed](./img/7-series-FPGA-high-speed-serial-transceiver-count.png)
 
-Attached are some user guide to use [GTP transceiver](https://docs.amd.com/v/u/en-US/ug482_7Series_GTP_Transceivers) and [GTX/GTH transceiver](https://docs.amd.com/v/u/en-US/ug482_7Series_GTP_Transceivers)
+Attached are some user guide to use [GTP transceiver](https://docs.amd.com/v/u/en-US/ug482_7Series_GTP_Transceivers) and [GTX/GTH transceiver](https://docs.amd.com/v/u/en-US/ug476_7Series_Transceivers)
+
+Here is another map of aggregate bandwidth:
+
+![Here lies the transceiver aggregate bandwidth, not sure about the unit](./img/transceiver-aggregate-bandwidth-not-sure-the-unit.png)
+
+
+And finally, there is a figure that shows the total I/O count and total bandwidth in Gb/s 
+
+![I/O count and total bandwidth calculated using LVDS performance](./img/Total_IO_count_and_bandwidth_7_series_FPGA.png)
+
+
+In the Artix-7 product brief, it was mentioned that the double differential I/O standards with speed up to **1.25 Gb/s** LVDS performance
+
+After checking these details, I think I know how these numbers are calculated.
+
+For a GTP transceiver with max speed of 6.6 Gb/s,
+
+Transceiver aggregate bandwidth = 2 X number of transceiver X 6.6
+
+Therefore, XC7A12T, which has 2 GTP transceiver, has 2 X 2 X 6.6 = 26.4 Gb/s.
+
+It has to multiply by 2 because we are counting the duplex working bandwidth.
+
+Total bandwidth simply just used 150 X 1.25 = 187.5 Gb/s
+
+
+#### AC701 Evaluation board kit of Artix-7
+
+The board I have been checking is [AC701 evaluation board](https://docs.amd.com/v/u/en-US/ug952-ac701-a7-eval-bd), which ships with the XC7A200T
+
+
+The AC701 board provides access to eight GTP transceivers:
+
++ Four of the GTP transceivers are wired to the PCI Express x4 endpoint edge connector (P1) fingers
++ Two of the GTP transceivers are wired to the FMC HPC connector (J30)
++ One GTP transceiver is wired to SMA connectors (RX: J46, J47 TX: J44, J45)
++ One GTP transceiver is wired to the SFP/SFP+ Module connector (P3)
+
+
+
+
+
 
 

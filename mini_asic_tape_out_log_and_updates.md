@@ -134,7 +134,7 @@ From the document, the power supply for the IP should be 20 um wide at least.
 So I have tried to power the design with 20 um power stripes, in the meantime, I will also add a power ring around the RAM block.
 
 
-## 28 Aug 2024
+## 29 Aug 2024
 
 ### Place and Route (continued-continued)
 
@@ -236,6 +236,115 @@ The AC701 board provides access to eight GTP transceivers:
 + Two of the GTP transceivers are wired to the FMC HPC connector (J30)
 + One GTP transceiver is wired to SMA connectors (RX: J46, J47 TX: J44, J45)
 + One GTP transceiver is wired to the SFP/SFP+ Module connector (P3)
+
+
+## 30 Aug 2024
+
+Now I am restarting the implementation in the virtuoso environment innovus.
+
+Where I invoke innovus in the directory where OA libraries are accessible.
+
+This is a better way to implement the design for later virtuoso import.
+
+Somehow the tool reports that there is no physical data for certain cells.
+
+
+I chose TECH_XH018_HD as the technology library instead of TECH_XH018.
+
+I am wondering if this could be the problem. I will now switch to TECH_XH018 instead.
+
+
+**PROBLEM SOLVED!**
+
+
+Technology library should be **TECH_XH018** instead of **TECH_XH018_HD**.
+
+This made me wonder if I have made a mistake by using HD tech lef file instead of the normal lef file.
+
+But this should not impact the synthesis, because we did not do physical synthesis iSpatial flow.
+
+Now it is reporting something that feels like unresolvable, where it complains the special net VDD/VSS distance is too close.
+
+
+![A DRC error that complains about distance required between VDD and VSS needs to be at least 0.6](./img/DRC_error_that_feels_unresolvable_on_IP.png)
+
+But this cannot be fixed if we have this distance set up by the RAM IP block.
+
+
+I am thinking if it is because I chose 1143_HD when generating the RAM IP block.
+
+
+Also I just realised that the supporting power rail only has to be thicker than half of the Wxfmc.
+
+
+And also considering the limited ports, I shall regenerate another FIFO DPRAM with width of 8 and restart the implementation.
+
+And I also realised that the IP has a technology code as in 1133??
+
+Which is not what we are using if my memory serves.
+
+Our design should be 
+
+**MET4+METMID+METTHK**
+
+not 
+
+**MET3+METMID+METTHK**
+
+
+Now I am regenerating a new FIFO RAM!!! It should have the process code of 1143 and MET4+METMID+METTHK.
+
+Also it will only have 128 entries and 8 bit wide.
+
+I will also generate another 256 entries and 8 bit wide.
+
+I also left the load capacitance alone this time with default 0.2pF.
+
+In terms of variation, I am creating the one that's closest to a square.
+
+
+### Start over again with 128X8 FIFO
+
+I have just drafted the verilog module again for this FIFO, simply change some parameters and that's it.
+
+This will be extended to next week to complete.
+
+
+
+## 02 Sep 2024
+
+
+Since I have already drafted the verilog for 128X8 FIFO, now I just have to do another round of simulation to check out the behaviour.
+
+As expected, the behaviour is correct.
+
+Now I will head to the Synthesis again with 125 degrees.
+
+Synthesis finished without any error.
+
+Now doing the conformal check...
+
+conformal check passed...
+
+Now heading to place and route...
+
+draft up the MMMC file and constraint files...
+
+OK this MMMC file finally passed...
+
+Moving the work to the virtuoso environment for PnR...
+
+Dont know why I am having this error again about the physcial cells not found??
+
+reload innovus again and this is fixed?
+
+Now I have just did a special routing, and this is the least DRC I have ever seen.
+
+![Least DRC erros I have ever seen after SRoute of a FIFO design](./img/least_DRC_I_have_seen_after_sRoute_FIFO_128_8.png)
+
+Now I guess I need to fix these errors manually
+
+
 
 
 

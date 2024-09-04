@@ -346,9 +346,108 @@ Now I guess I need to fix these errors manually
 
 
 
+## 03 Sep 2024
+
+### Fixing DRC erros brought by via generation
+
+There are loads of errors brought by the via generation they are either too close to each other.
+
+Mainly at the via between metal 4 and metal 5, the tool used a fixed via cell to place on top of each other, this will inevitably make the vias overlap or leave no space between vias.
+
+I tried to create my own customised via which seems to be ok to address this issue.
+
+![Newly generated via between metal 4 and 5](./img/customised_via_between_metal5_metal_4_to_remove_DRC.png)
+
+I drew a horizontal metal 4 that is equally thick and manually added 5 vias (4 on the left and 1 on the right) and made sure they satisfy the DRC rule.
+
+And the DRC error typically looks like this:
+
+![Typical Via 4 error in this design](./img/typical_via_4_DRC_error_to_be_addressed.png)
+
+After I fixed it manually, the layout looks like this:
+
+![The 3D view after I manually fixed the error](./img/typical_via_4_DRC_error_after_manual_fix.png)
+
+I have just fixed all the DRC errors in my design.
+
+Now I am doing cell placement.
+
+The tool used Metal 6 over the RAM block, but this has not been finalised and there are routes overlapped.
+
+and apparenlty, the RAM module has an area that is not allowed for routing namingly OBS.
+
+![congestion map after early global route](./img/congestion_map_after_early_global_route_mainly_vertical.png)
+
+After checking the details on virtuoso, it looks like the routing blockage for metal 6 is tiny, and the routing we have in innovus should actually be ok.
+
+![routing blockages found for metal 6 in virtuoso is a tinay purple area](./img/only_a_tiny_area_that_blocks_METAL_6_so_it_should_be_ok.png)
 
 
+Finished clock tree synthesis, now 2 buffers added for the clock tree distribution.
+
+we still have hold time violation.
+
+Now we are optimising the route for hold violation.
+
+And then the violation is fixed, it looks the tool inserted some buffers.
 
 
+## 04 Sep 2024
 
+
+I will continue the place and route from yesterday following the clock tree synthesis and hold timing violation fix.
+
+Suprisingly, routing finished pretty quickly with only minor errors.
+
+And there is no routing above the block using other than metal 6.
+
+There is no DRC errors but 9 connectivity errors mainly in 2 catelogues:
+
++ Antenna side area ratio 
++ dangling wires of the power stripes.
+
+After trimming the unnecessary power stripes, the dangling wires violations are all fixed except the antenna side area ratio violation.
+
+I will have a look online and see if there is any tutorial.
+
+So this [article](https://chipedge.com/what-is-the-antenna-effect-in-vlsi/#:~:text=Antenna%20Violation%20occurs%20when%20the,the%20conductor%20(gate%20area).) talks about what the antenna ratio is and possible solutions.
+
+There is another [article](https://www.edn.com/antenna-violations-resolved-using-new-method/) talking more comprehensively about the solution and causes.
+
+So basically, antenna ratio is the ratio of gate area and gate oxide area.
+
+and the solutions it proposed includes:
+
++ Metal jumper
++ Diode insertion
+
+Metal jumper will break the signal line and use jumpers to route them on a top metal.
+
+The second solution will attach the diode to the wire and establish a discharge path
+
+
+### What is Antenna effect
+
+It is also known as plasma-induced gate-oxide damage or plasma-induced damage.
+
+It occurs when unwanted charges accumulate on exposed conductors during fabrication.
+
+
+I will proceed from now, cus there is no DRC error and connectivity error.
+
+The design will be saved 
+
+
+### Fixing antenna violation
+
+I therefore followed metal hopping method to fix the antenna hopping.
+
+Before the metal hopping, the violation exists for signal CLK.
+
+![CLK signal antenna error before the fix](./img/Antenna_error_needs_to_be_fixed_for_CLK_signal.png)
+
+
+After I broke the signal CLK net and did a little wire editing, the antenna violation is fixed.
+
+![Antenna hopping is fixed after metal hopping](./img/Fix_antenna_violation_by_adding_metal_hopping_CLK.png)
 

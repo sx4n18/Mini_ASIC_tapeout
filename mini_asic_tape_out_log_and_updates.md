@@ -451,3 +451,59 @@ After I broke the signal CLK net and did a little wire editing, the antenna viol
 
 ![Antenna hopping is fixed after metal hopping](./img/Fix_antenna_violation_by_adding_metal_hopping_CLK.png)
 
+
+## 05 Sep 2024
+
+
+I shall give the implemented design a post-layout simulation and conformal verification today.
+
+Ok, it looks like the design passed the behaviour check...
+
+![Post layout gate level simulation presented](./img/looks_like_the_post_layout_simulation_is_working_for_FIFO128.png)
+
+It is worth noting that because the highest bit of register write_ptr is at the end of the scan chain, it was therefore replaced by scan_out during optimisation.
+
+Surpsingly it works.... and the simulation also works even if I did not type in the Dual port ram verilog file???
+
+I am still scratching my head about this...
+
+
+Now let me do the conformal check for the design...
+
+It it reporting 20 nonequivalent DFFs...
+
+![The tool is reporting 20 nonequivalent DFFs but I do not see the difference between these 20 nonequivalence](./img/conformal_check_results_of_syn_and_PnR_showing_slight_difference_but_I_do_not_see_non_equivalence.png)
+
+
+I should now probably check how conformal works.
+
+
+## 09 Sep 2024
+
+I guess I can probably do another FIFO implementation with 256 entries of DPRAM
+
+Behaioural simulation passed !
+
+post-synthesis simulation passed !
+
+LEC conformal check passed, except the DB input not mapped. This is beacuase in the original code, they are not connected to anything. During synthesis, it has been all connected to ground.
+
+In conclusion, LEC check passed !
+
+PnR now... this shall take some time.
+
+
+## 10 Sep 2024
+
+I have managed to push the design forward to finish the placement.
+
+This also includes clock tree synthesis, but it seems the placement preference has been down at the bottom of the RAM.
+
+Basically all the cells are placed under the RAM.
+
+![FIFO implementation 256 ](./img/FIFO_256_Cell_placements_after_clock_tree_synthesis.png)
+
+
+And this got me thinking I should probably start over with a different floorplan, I mean the side areas are basically not used.
+
+

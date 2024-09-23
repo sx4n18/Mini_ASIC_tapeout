@@ -507,3 +507,166 @@ Basically all the cells are placed under the RAM.
 And this got me thinking I should probably start over with a different floorplan, I mean the side areas are basically not used.
 
 
+## 11 Sep 2024
+
+I have finished the design for FIFO 256, will start testing tomorrow.
+
+The final layout looks like this:
+
+![Final layout of the finished 256 FIFO](./img/Finished_256_FIFO_design_layout.png)
+
+But I am having a lot of concerns for this design.
+
+for example, I did not reorder the scan chain to make the placement more efficient.
+
+
+## 12 Sep 2024
+
+Just checked the 128 FIFO design and realised there are still some connectivity errors need fixing.
+
+Will come back to this tomorrow, and if necessary, I will start over with the place and route.
+
+
+
+## 13 Sep 2024
+
+I am now coming back to the reimplementation of the 128 FIFO after I realised how messed up the last implementation was.
+
+And I am also getting the scan chain reordered to have a better placement.
+
+And I am also connecting the DB of the RAM to the ground.
+
+Just redid the implementation of the FIFO 128 after checking and fixed everything.
+
+this has now been saved in Sync_FIFO_XDPRAM_128X8 as FIFO_128_redo.
+
+Will get the functionality verified next
+
+
+## 14 Sep 2024
+
+Since I have got the implementation finished, I will now get the functionality verified. 
+
+Oh and also get this conformal checked.
+
+I just learnt that while writing out the SDF files, you can put the options of PVT informations like follow:
+
+And according to innovus, it is recommended to turn on recompute_delaycal for functionality simulation.
+
+It is normally turned off for faster computation.
+
+```Tcl
+ write_sdf -process best:typical:worst -voltage 1.98:1.80:1.62 -temperature -40:25:125 -recompute_delaycal FIFO_128_8_XDPRAM/PnR/outputs/FIFO_128_redo_final.sdf  
+```
+
+And the functionality has been verified to be ok.
+
+![functionality verified FIFO 128 redo ](./img/FIFO_128_redo_functionality_verified_to_be_working.png)
+
+
+Also I noticed that the tool complained about the timing declaration missing from key verilog files, which has never happened before.
+
+
+I will head on to the conformal check.
+
+This has reported the similar situmation as before, so I would assume it is the behaviour that might exist commonly with innovus.
+
+Even though I have not verified the scan chain from the design.
+
+Continuing with the 256 implementation, I see that I should add tie high and tie low cells before placing the cell.
+
+But there are 2 types of tie hi/lo cells, with with low voltage optimisation, one without.
+
+I will stick to the normal one again.
+
+And also this time, I set a placment blockgage so that the cells will not be place under the power stripes.
+
+While adding fillers, I noticed the error messages saying the site has been defined as "HD":
+
+```text
+**ERROR: (IMPSP-365):	Design has inst(s) with SITE 'core_hd_dh', but the floorplan has no rows defined for this site. Any locations found for such insts will be illegal; create rows for this site to avoid this.
+```
+
+I think it is complaining about the double height fillers because of the field defined and therefore, there are no double height filler cells inserted.
+
+of course there are antenna violations...
+
+And due to the right side of the RAM block not aligned with the edge, there are fillers cells placed, and this has caused basically every row's power rail to be open.... shiiiiiit.
+
+Let me start over again....
+
+But because reallocate the placement for the RAM is going to bring extra more work, I will just add a placement halo to the right.
+
+Now I have finished FIFO 256 reimplementation too, I will probably head on for further up integration.
+
+
+## 17 Sep 2024
+
+Today I can get this physcial implementation verified probably using simulation and/or conformal.
+
+The behaviour looks correct except the signal almost_full is a little glitchy but it should not be a problem.
+
+![The FIFO 256 simulation looks correct from the waveform](./img/behavioural_simulation_at_the_post_layout_gate_level_simulation_of_FIFO_256.png)
+
+and I would assume the confomal check still cannot pass because of the slightly rearranged DFFs.
+
+Of course, as expected, there are non-equivalent DFFs 
+
+But I am going to go ahead and ignore this for now...
+
+There are couple points I may want to revisit again in the future.
+
+It seems that I am wastig an extra cycle here at reading out process according to the simulation.
+
+![The data has already been ready one clock cycle ahead](./img/double_counted_output_at_QB_and_it_flips_along_with_the_clock.png)
+
+I also need to consider carefully about the chip level integration now.
+
+Like, how this data loop should look like and how many pins I need.
+
+
+## 23 Sep 2024
+
+Think I have a plan for the whole chip design. 
+
+Because what we have in mind is very simple, just a simple data loop.
+
+Serial/parallel in --> parallisation --> FIFO --> serialisation --> serial out
+
+And this time, I would like to use 512 rows of DPRAM.
+
+About the wasted extra cycle, it is clearly illustrated from the behavioural simulation that there is no extra cycle wasted.
+
+And the behaviour I drafted will make sure the correct data can be exported.
+
+
+Steve's email makes me realise my concern is valid, like this IP purchase may not be economical, which might only be used once.
+
+Because we might need to switch technology later on.
+
+But the RAM should be able to fit in.
+
+
+a 256 words 8 bit DPRAM is 337.11μm x 210.61μm
+
+And 512 words 8 bit DPRAM is 339.79μm x 297.97μm
+
+The die size for this miniasic should be 1520μm x 1520μm
+
+
+256X8
+
+337.11 X 210.61
+
+512X8
+
+339.79 X 297.97
+
+FIFO imp:
+
+422.49 X 284.87
+
+
+I aslo finished the RTL for input handler, which should be hooked to the FIFO's input.
+
+Will implement the output handler tomorrow, which should take the FIFO's output and then serialise it to SPI protocol.

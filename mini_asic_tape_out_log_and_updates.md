@@ -670,3 +670,94 @@ FIFO imp:
 I aslo finished the RTL for input handler, which should be hooked to the FIFO's input.
 
 Will implement the output handler tomorrow, which should take the FIFO's output and then serialise it to SPI protocol.
+
+
+## 24 Sep 2024
+
+Just sent the email confirming the block we are using this time is 512X8.
+
+Since I have finished the input handler, now I will proceed to the output handler to serialise the output.
+
+
+I have found an SPI implementation repo, and now I am reading all of it to understand the implementation better.
+
+
+## 25 Sep 2024
+
+After asking chapGPT, I think my understanding towards the SPI interface is clearer now.
+
+I understood the mechanism of the clock generation and realised I might need a state machine for my need.
+
+Since I have a process of dealing with the FIFO, I need to let it request data from FIFO.
+
+I have drafted the output handler and simulated the behaivour, it looks alirght from my simulation.
+
+![output handler simulation looks alrigh](./img/output_handler_looks_alright_from_the_simulation_with_proper_SPI_behaviour.png)
+
+
+## 26 Sep 2024
+
+Just learnt that if you wish to insert breakpoint, the option -linedebug is needed when invoking xcelium simulator.
+
+My plan next may be to find an FPGA and my Arduino board to see if the SPI module works.
+
+Coming up next should be hooking up the FIFO and output handler together to do a global simulation.
+
+I need to probably hook up the input handler first before the output handler.
+
+And never use ```$urandom()```, the simulator is not happy with it.
+
+I have just finished the simulation for the combination of input handler and FIFO module, it shows the behaviour has been correct.
+
+![Expected behaviour for the combination of input handler and FIFO](./img/expected_behaviour_of_input_handler_and_FIFO_showing_correct_writing_and_reading.png)
+
+OK, after observing the waveform, I thinkg I need some control over the output logic, because the statemachine has been stuck in the position where it is waiting for the read data from the FIFO after asserting the RD_n.
+
+![modification needed for output handler module](./img/some_control_signal_is_needed_to_control_the_reading_from_FIFO.png)
+
+I will fix this tomorrow.
+
+
+## 27 Sep 2024
+
+I was thinking towards the issue I had, the possible solution I can think of is:
+
++ make the output handler not output anything if empty/almost_empty flagged
++ add an extra signal for output control
+
+Think it is easier to make the statemachine check the flag status of empty/almost_empty
+
+![Added empty flag signal helpped the output handler](./img/added_empty_flag_worked_with_simulation_for_output_handler.png)
+
+I will now add this port in the full data loop and make the connection.
+
+Think the behaviour is now fixed.
+
+![The simulation looks ok after the solution implemented](./img/full_data_loop_behaivour_fixed_in_the_simulation_this_is_looking_well.png)
+
+Ok, this is easier than I thought...
+
+But I am still not sure if the SPI is behaving correctly.
+
+Will have to get this verified with an SPI IP in vivado.
+
+
+## 30 Sep 2024
+
+I think I could probably use vivado IP to verify the implementation of my SPI module.
+
+After checking other people's design, I think my SPI should work just fine (probably needs further verification).
+
+
+I have just finished the synthesis of the design, now I need to do the conformal check.
+
+Even though reported some non-equivalence, I think they should be equivalent, this is because the syntehsis has optimised my redundant logic with Wr_en and data_received.
+
+I will now do the post-synthesis simulation to verify at least the behaviour is ok.
+
+And it looks that the post-synthesis simulation presented correct behaviours.
+
+![post-synthesis simulation with actual gate presented correct behaivour with the full data loop](./img/post_syn_gate_level_simulation_proves_to_be_working.png)
+
+
+

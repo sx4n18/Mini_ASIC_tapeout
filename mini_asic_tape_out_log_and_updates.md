@@ -760,4 +760,296 @@ And it looks that the post-synthesis simulation presented correct behaviours.
 ![post-synthesis simulation with actual gate presented correct behaivour with the full data loop](./img/post_syn_gate_level_simulation_proves_to_be_working.png)
 
 
+## 01 Oct 2024
+
+After the meeting with Piotr, I was told I have another job to do.
+
+Try my best to make the design work at 200MHz...
+
+I will first have to double the clock rate apparently, and now I will have to make a multi-mode chip.
+
+Think I have a rough plan:
+
+1. I will need to make sure the whole design works at 100MHz
+2. Depending on the functional mode, the output handler will be operating either at 100MHz or 200 MHz
+
+
+## 02 Oct 2024
+
+Despite what has been brought to me, I will make an implementation to make sure we have something to deliver first.
+
+It would be very irrational to change everything now.
+
+Start drafting MMMC file now.
+
+OK, I did not add reset synchronisation, I will need to add it now after the compilation for the MMMC file has passed.
+
+Mannually added reset synchronisation looks like this:
+
+```verilog
+
+wire rst_n_sync_1, rst_n_sync_2;
+
+// reset synchronisation
+//  (C, D, Q, RN);
+DFRRQHDX1 reset_sync_1 ( 
+	.C(CLK), 
+	.D(1'b1), 
+	.Q(rst_n_sync_1), 
+	.RN(rst_n));
+
+DFRRQHDX1 reset_sync_2 ( 
+	.C(CLK), 
+	.D(rst_n_sync_1), 
+	.Q(rst_n_sync_2), 
+	.RN(rst_n));
+```
+
+Now I need to make changes at the sdc files, which has been made.
+
+
+Apparenlty, there is a thing called routing rule for clock, and generally people would use double width double spacing rule for clock :
+
+First, you need to create a non-default routing rule (NDR): 
+
+```tcl 
+create_route_rule -name CTS_2W2S -spacing_multiplier {MET3:METTPL 2} -width_multiplier {MET3:METTPL 2}
+```
+
+Then create a routing type for CTS 
+
+```tcl 
+create_route_type -name cts_trunk -route_rule CTS_2W2S \
+			-top_preferred_layer MET4   -bottom_preferred_layer MET3 \
+			-shield_net VSS   -bottom_shield_layer MET3
+```
+
+Finally apply property to trunk type clock nets 
+
+```tcl 
+set_db cts_route_type_trunk cts_trunk 
+```
+
+I will come back for the DRC and antenna fix tomorrow
+
+
+
+## 03 Oct 2024
+
+I will finish the design today.
+
+First I checked the conectivity violations, which says VDD is open.
+
+After checking, it appears to be the issue from filler cells near the corner of the RAM cell where I was not expecting cells.
+
+So their power rail was missing and I then simply deleted the cells.
+
+Then I did some metal hopping to fix antenna violations.
+
+Now the design is properly finished.
+
+But then I found that post-route hold violation was not fixed....
+
+it is now very difficult to fix with everything filled....
+
+So I restarted from post_cts_fixed where filler cells have not been inserted and this time the tool magiacally inserted diodes to fix antenna violations.
+
+And it is smart enough to do metal hopping to fix antenna, amazing!!!
+
+![Finally inserted a diode to fix antenna violation!](./img/Finally_successfully_inserted_a_diode_to_fix_antenna_violations.png)
+
+The only antenna violation found in this case is an easy fix.
+
+Now I will check the timing.
+
+Of course there are hold violations and easily fixable with buffer cells.
+
+![Easilfy fixable hold timing violation when filler cells are not placed.](./img/Easily_fixable_hold_timing_violation_post_route.png)
+
+Now I can add filler cells.
+
+```tcl 
+add_fillers -base_cells FEED25HD FEED15HD FEED10HD FEED7HD FEED5HD FEED3HD FEED2HD FEED1HD FCNE32HD FCNE31HD FCNE30HD FCNE29HD FCNE28HD FCNE27HD FCNE26HD FCNE25HD FCNE24HD FCNE23HD FCNE22HD FCNE21HD FCNE20HD FCNE19HD FCNE18HD FCNE17HD FCNE16HD FCNE15HD FCNE14HD FCNE13HD FCNE12HD FCNE11HD FCNE10HD FCNE9HD FCNE8HD FCNE7HD FCNE6HD FCNE5HD FCNE4HD FCNE3HD FCNE2HD DECAP25HD DECAP15HD DECAP10HD DECAP7HD DECAP5HD DECAP3HD -prefix FILLER_
+```
+Think I need to write a proper flow guide for this technology so that I can always follow properly.
+
+
+Now I need to verify the post-layout gate level behaviour.
+
+OK, I think the functionality has been verified from the simulation.
+
+![functionality has been verified through the post-layout simulation](./img/Final_gate_level_simulation_results_post_layout.png)
+
+And I should also verify the scan chain probably.
+
+![The simulation test for scan chain, it looks like it works](./img/the_scan_chain_looks_functional_in_this_simulation.png)
+
+And from the simulation, it looks like there are 53 registers in total.
+
+It would be best if I can keep the whole design in digital, otherwise I need another set of VDD and GND.
+
+We do not have that many pins.
+
+I will come back tomorrow for the final layout.
+
+
+## 04 Oct 2024
+
+Ok, let's finish this layout.
+
+I have finished the layout and did a PVS DRC check and it has passed except an antenna violation.
+
+## 07 Oct 2024
+
+Still the power net has not been connected, I will try to connect it mannually.
+
+I still do not feel confident to plot out the power and ground connection.
+
+I should probably email Steve and ask for a favour.
+
+I cannot fix the design on virtuoso, I am so not familiar with it...
+
+
+
+## 14 Oct 2024
+
+I will reimplement the design today start from floorplan and rename the power ground and probably add the clock tree with shield net.
+
+Shouyu section V2.0 starting now.
+
+This is the following useful script to set up the spacing and non default rules.-help
+
+```tcl 
+add_ndr -name default_2x_space -spacing {metal1 0.38 metal2:metal5 0.42 metal6 0.84}
+create_route_type -name leaf_rule  -non_default_rule default_2x_space -top_preferred_layer metal4 -bottom_preferred_layer metal2
+create_route_type -name trunk_rule -non_default_rule default_2x_space -top_preferred_layer metal4 -bottom_preferred_layer metal2 -shield_net VSS -shield_side both_side
+create_route_type -name top_rule   -non_default_rule default_2x_space -top_preferred_layer metal4 -bottom_preferred_layer metal2 -shield_net VSS -shield_side both_side
+set_ccopt_property route_type -net_type leaf  leaf_rule
+set_ccopt_property route_type -net_type trunk trunk_rule
+set_ccopt_property route_type -net_type top   top_rule
+```
+
+
+and because the clock is gonna use metal 3 - metal 5, here I am gonna use some important information:
+
+```lef
+LAYER MET3
+    TYPE ROUTING ;
+    WIDTH 0.28 ;
+    MAXWIDTH 35 ;
+    SPACING 0.28 ;
+    SPACING 0.6 RANGE 10.001 100 ;
+    SPACING 0.6 RANGE 10.001 100 INFLUENCE 1.6 ;
+    PITCH 0.610 ;
+    OFFSET 0.000 ;
+    AREA 0.202 ;
+    WIREEXTENSION 0.19 ;
+    DIRECTION HORIZONTAL ;
+    CAPACITANCE CPERSQDIST 4.15e-05 ;
+    EDGECAPACITANCE 8.3e-06 ;
+    RESISTANCE RPERSQ 0.074 ;
+    THICKNESS 0.565 ;
+    ANTENNASIDEAREARATIO 380 ;
+    ANTENNADIFFAREARATIO 9999999 ;
+END MET3
+
+LAYER MET4
+    TYPE ROUTING ;
+    WIDTH 0.28 ;
+    MAXWIDTH 35 ;
+    SPACING 0.28 ;
+    SPACING 0.6 RANGE 10.001 100 ;
+    SPACING 0.6 RANGE 10.001 100 INFLUENCE 1.6 ;
+    PITCH 0.630 ;
+    OFFSET 0.315 ;
+    AREA 0.202 ;
+    WIREEXTENSION 0.19 ;
+    DIRECTION VERTICAL ;
+    CAPACITANCE CPERSQDIST 4.15e-05 ;
+    EDGECAPACITANCE 8.3e-06 ;
+    RESISTANCE RPERSQ 0.074 ;
+    THICKNESS 0.565 ;
+    ANTENNASIDEAREARATIO 380 ;
+    ANTENNADIFFAREARATIO 9999999 ;
+END MET4
+
+LAYER METTP
+    TYPE ROUTING ;
+    WIDTH 0.44 ;
+    MAXWIDTH 35 ;
+    SPACING 0.46 ;
+    SPACING 0.6 RANGE 10.001 100 ;
+    SPACING 0.6 RANGE 10.001 100 INFLUENCE 1.6 ;
+    PITCH 1.220 ;
+    OFFSET 0.610 ;
+    AREA 0.562 ;
+    DIRECTION HORIZONTAL ;
+    CAPACITANCE CPERSQDIST 3.53e-05 ;
+    EDGECAPACITANCE 9.5e-06 ;
+    RESISTANCE RPERSQ 0.031 ;
+    THICKNESS 0.985 ;
+    ANTENNASIDEAREARATIO 380 ;
+    ANTENNADIFFAREARATIO 9999999 ;
+END METTP
+```
+
+Based on this I wrote the following:
+
+```tcl 
+## create non default routing rule 
+
+create_route_rule -name double_spacing_of_default_3_5 -spacing {MET3 0.56 MET4 0.56 METTP 0.92}
+
+## create_routing type 
+create_route_type -name leaf_rule -route_rule double_spacing_of_default_3_5 -top_preferred_layer METTP -bottom_preferred_layer MET3
+
+create_route_type -name trunk_rule -route_rule double_spacing_of_default_3_5 -top_preferred_layer METTP -bottom_preferred_layer MET3 -shield_net gnd! -shield_side both
+
+create_route_type -name top_rule -route_rule double_spacing_of_default_3_5 -top_preferred_layer METTP -bottom_preferred_layer MET3 -shield_net gnd! -shield_side both
+
+
+## connect the routing type to the cts routing property
+
+set_db cts_route_type_leaf leaf_rule
+
+set_db cts_route_type_trunk trunk_rule
+
+set_db cts_route_type_top top_rule
+``` 
+
+![CTS double spacing and shielding worked](./img/Messy_but_the_cts_double_spacing_rule_worked.png)
+
+But there would be a lot of problems for DRC afterwards, I think it is because the space was not enough
+
+
+## 15 Oct 2024
+
+Today I will be trying to set up the whole flow in innovus.
+
+
+
+## 17 Oct 2024
+
+This time I found the options to insert the map file during GDS export and they can also be done using scripts:
+
+```tcl 
+write_stream outputs/GDS/Double_encoder -map_file /eda/design_kits/xkit_root/xh018/cadence/v9_0/PDK/IC61/v9_0_4/TECH_XH018_HD_1131/pnr_streamout.map -lib_name DesignLib -unit 1000 -mode all
+```
+
+And now I shall try to import this GDS back into virtuoso and see if it will be successful.
+
+So far it seems that the configurations have been very helpful and all the layers are shown in virtuoso.
+
+But in the meantime, it is also creating a lot of via cells.
+
+
+I think it is because the tool created a new via structure to make sure it can be displayed in virtuoso.
+
+For example:
+
+encoder_VIA0 is a cell with 2 vias on top of each other.
+
+![encoder_VIA0 a new cell created with 2 vias on top of each other](./img/GDSII_imported_with_extra_vias_new_cell.png)
+
+and it seems that TECH_1131 AND TECH_1131_HD does not have very big differences.
 

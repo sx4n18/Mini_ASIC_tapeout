@@ -1053,3 +1053,22 @@ encoder_VIA0 is a cell with 2 vias on top of each other.
 
 and it seems that TECH_1131 AND TECH_1131_HD does not have very big differences.
 
+
+
+## 28 Oct 2024
+
+I do not see this problem can get resolved before the deadline, I should probably do another implementation that does not include the memory IP.
+
+I will start the implementation now to produce a lite version of the original design where IP block is replaced with some internal logic.
+
+This behaviour with the impostor module looks functional.
+
+I did not test burst data feed, because I know the maximum amount of data it can take is just 16 bytes.
+
+
+## 29 Oct 2024
+
+Will head to synthesis stage and insert the scan chain in this process.
+
+Before that I will encapsulate the design with reset synchronisation.
+
